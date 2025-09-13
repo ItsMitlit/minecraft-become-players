@@ -1,7 +1,10 @@
 package it.mitl.minecraftbecomeplayers;
 
 import com.mojang.logging.LogUtils;
+import it.mitl.minecraftbecomeplayers.entity.ModEntities;
+import it.mitl.minecraftbecomeplayers.entity.client.SynthRenderer;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -48,6 +51,11 @@ public class Main {
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
+        }
+
+        @SubscribeEvent
+        public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerEntityRenderer(ModEntities.SYNTH.get(), SynthRenderer::new);
         }
     }
 }

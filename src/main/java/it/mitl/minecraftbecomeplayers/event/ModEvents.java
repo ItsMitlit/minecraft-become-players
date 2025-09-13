@@ -14,4 +14,3 @@ public class ModEvents {
         event.put(ModEntities.SYNTH.get(), SynthEntity.createAttributes().build());
     }
 }
-
