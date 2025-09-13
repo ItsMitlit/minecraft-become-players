@@ -14,7 +14,8 @@ public class ModEntities {
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, Main.MOD_ID);
 
     public static final RegistryObject<EntityType<SynthEntity>> SYNTH =
-            ENTITY_TYPES.register("synth", () -> EntityType.Builder.of(SynthEntity::new, MobCategory.MISC)
+            ENTITY_TYPES.register("synth", () -> EntityType.Builder.of(SynthEntity::new, MobCategory.CREATURE)
+                    .sized(0.6F, 1.8F)
                     .build("synth"));
 
     public static void register(IEventBus eventBus) {
