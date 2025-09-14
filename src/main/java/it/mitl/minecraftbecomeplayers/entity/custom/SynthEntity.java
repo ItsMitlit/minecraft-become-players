@@ -33,6 +33,10 @@ public class SynthEntity extends PathfinderMob {
     private RandomLookAroundGoal randomLookGoal;
     private boolean activationGoalsAdded = false;
 
+    // Goal for when activation stage >= 1 (just the look at player one atm)
+    private LookAtPlayerGoal lookAtPlayerGoal;
+    private boolean lookGoalAdded = false;
+
     public SynthEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
     }
@@ -56,11 +60,11 @@ public class SynthEntity extends PathfinderMob {
     protected void registerGoals() {
         // Permanent goals
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(2, new LookAtPlayerGoal(this, Player.class, 8.0F));
 
-        // Activation-dependent goals (once synth is activated)
+        // Activation-dependent goals (once synth is activated and/or activating)
         this.strollGoal = new WaterAvoidingRandomStrollGoal(this, 1.0D);
         this.randomLookGoal = new RandomLookAroundGoal(this);
+        this.lookAtPlayerGoal = new LookAtPlayerGoal(this, Player.class, 8.0F);
 
         this.updateActivationDependentGoals();
     }
@@ -68,19 +72,32 @@ public class SynthEntity extends PathfinderMob {
     private void updateActivationDependentGoals() {
         if (this.level().isClientSide) return;
 
-        boolean shouldEnable = this.getActivationStage() >= 3;
+        int stage = this.getActivationStage();
+
+        // Enable player look goal when stage >= 1
+        boolean shouldLook = stage >= 1;
+        if (shouldLook) {
+            if (!lookGoalAdded) {
+                this.goalSelector.addGoal(2, this.lookAtPlayerGoal);
+                lookGoalAdded = true;
+            }
+        } else if (lookGoalAdded) {
+            this.goalSelector.removeGoal(this.lookAtPlayerGoal);
+            lookGoalAdded = false;
+        }
+
+        // Enable stroll and random look goals when stage >= 3
+        boolean shouldEnable = stage >= 3;
         if (shouldEnable) {
             if (!activationGoalsAdded) {
                 this.goalSelector.addGoal(1, this.strollGoal);
                 this.goalSelector.addGoal(3, this.randomLookGoal);
                 activationGoalsAdded = true;
             }
-        } else {
-            if (activationGoalsAdded) {
-                this.goalSelector.removeGoal(this.strollGoal);
-                this.goalSelector.removeGoal(this.randomLookGoal);
-                activationGoalsAdded = false;
-            }
+        } else if (activationGoalsAdded) {
+            this.goalSelector.removeGoal(this.strollGoal);
+            this.goalSelector.removeGoal(this.randomLookGoal);
+            activationGoalsAdded = false;
         }
     }
 
