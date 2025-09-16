@@ -29,9 +29,8 @@ public class SynthInstructionEvent {
         // Detect commands
         boolean hasStay = containsWord(lowerMsg, "stay");
         boolean hasRoam = containsWord(lowerMsg, "roam");
-        if (!hasStay && !hasRoam) return;
-
-        boolean setStaying = !hasRoam;
+        boolean hasFollow = containsWord(lowerMsg, "follow");
+        if (!hasStay && !hasRoam && !hasFollow) return;
 
         // Get nearby synths
         List<SynthEntity> list = player.level().getEntitiesOfClass(
@@ -65,16 +64,25 @@ public class SynthInstructionEvent {
 
         // Apply the stay/roam command to the selected synth
         for (SynthEntity target : chosenByName.values()) {
-            // Return (continue) if the synth isn't enabled
+            // Skip if the synth isn't enabled
             if (!target.isActivationComplete()) continue;
 
-            target.setStaying(setStaying);
+            String reply;
+            if (hasFollow) {
+                target.setStaying(false);
+                target.setFollowing(true);
+                reply = "All right, I'll follow you.";
+            } else if (hasRoam) {
+                target.setFollowing(false);
+                target.setStaying(false);
+                reply = "All right, I'll roam.";
+            } else {
+                target.setFollowing(false);
+                target.setStaying(true);
+                reply = "All right, I'll stay here.";
+            }
 
             String prefix = "§9[§b" + target.getSynthName() + "§9]§7 ";
-            String reply = setStaying
-                    ? "All right, I'll stay here."
-                    : "All right, I'll roam.";
-
             if (player.getServer() != null) {
                 SynthUtils.sendChatMessages(player, prefix + reply);
             } else {

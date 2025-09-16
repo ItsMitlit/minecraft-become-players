@@ -1,5 +1,6 @@
 package it.mitl.minecraftbecomeplayers.entity.custom;
 
+import it.mitl.minecraftbecomeplayers.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -42,6 +43,10 @@ public class SynthEntity extends PathfinderMob {
     // Whether the synth was told to stay (stand still)
     private boolean staying = false;
 
+    // Whether the synth should follow the owner
+    private boolean following = false;
+    private FollowOwnerGoal followOwnerGoal;
+
     public SynthEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
     }
@@ -72,6 +77,7 @@ public class SynthEntity extends PathfinderMob {
         this.strollGoal = new WaterAvoidingRandomStrollGoal(this, 1.0D);
         this.randomLookGoal = new RandomLookAroundGoal(this);
         this.lookAtPlayerGoal = new LookAtPlayerGoal(this, Player.class, 8.0F);
+        this.followOwnerGoal = new FollowOwnerGoal(this, 1.15D, 4.0F, 2.0F);
 
         this.updateActivationDependentGoals();
     }
@@ -93,8 +99,7 @@ public class SynthEntity extends PathfinderMob {
             lookGoalAdded = false;
         }
 
-        // Enable stroll and random look goals when at final stage and when not staying
-        boolean shouldHaveActivationGoals = isActivationComplete() && !staying;
+        boolean shouldHaveActivationGoals = isActivationComplete() && !staying && !following;
         if (shouldHaveActivationGoals) {
             if (!activationGoalsAdded) {
                 this.goalSelector.addGoal(1, this.strollGoal);
@@ -105,6 +110,17 @@ public class SynthEntity extends PathfinderMob {
             this.goalSelector.removeGoal(this.strollGoal);
             this.goalSelector.removeGoal(this.randomLookGoal);
             activationGoalsAdded = false;
+        }
+
+        // Follow goal handling
+        boolean shouldFollow = isActivationComplete() && following && !staying;
+        if (shouldFollow) {
+            // Ensure follow goal is present
+            if (!this.goalSelector.getAvailableGoals().stream().anyMatch(w -> w.getGoal() == this.followOwnerGoal)) {
+                this.goalSelector.addGoal(1, this.followOwnerGoal);
+            }
+        } else {
+            this.goalSelector.removeGoal(this.followOwnerGoal);
         }
 
         // Don't move if staying
@@ -208,6 +224,20 @@ public class SynthEntity extends PathfinderMob {
         }
     }
 
+    public boolean isFollowing() {
+        return this.following;
+    }
+
+    public void setFollowing(boolean following) {
+        this.following = following;
+        if (!this.level().isClientSide) {
+            if (!following) {
+                this.getNavigation().stop();
+            }
+            this.updateActivationDependentGoals();
+        }
+    }
+
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
@@ -217,6 +247,7 @@ public class SynthEntity extends PathfinderMob {
         tag.putInt("ActivationStage", this.getActivationStage());
         tag.putInt("Gender", this.getGender());
         tag.putBoolean("Staying", this.staying);
+        tag.putBoolean("Following", this.following);
         if (this.ownerUUID != null) {
             tag.putUUID("OwnerUuid", this.ownerUUID);
         }
@@ -247,6 +278,9 @@ public class SynthEntity extends PathfinderMob {
         }
         if (tag.contains("Staying")) {
             this.setStaying(tag.getBoolean("Staying"));
+        }
+        if (tag.contains("Following")) {
+            this.setFollowing(tag.getBoolean("Following"));
         }
     }
 }
