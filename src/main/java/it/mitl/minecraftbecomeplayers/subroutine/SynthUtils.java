@@ -2,6 +2,7 @@ package it.mitl.minecraftbecomeplayers.subroutine;
 
 import it.mitl.minecraftbecomeplayers.entity.custom.SynthEntity;
 import it.mitl.minecraftbecomeplayers.event.synthchat.SynthActivationEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
@@ -40,5 +41,12 @@ public class SynthUtils {
             }
         }
         return best;
+    }
+
+    public static void sendChatMessages(Player player, String message) {
+        new Thread(() -> {
+            player.getServer().execute(() -> player.sendSystemMessage(Component.literal(message)));
+        }).start();
+
     }
 }
