@@ -21,6 +21,8 @@ import java.util.UUID;
 
 public class SynthEntity extends PathfinderMob {
 
+    private static final EntityDataAccessor<String> SYNTH_SKIN = SynchedEntityData.defineId(SynthEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Boolean> SYNTH_SKIN_ENABLED = SynchedEntityData.defineId(SynthEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> SYNTH_NAME = SynchedEntityData.defineId(SynthEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> ACTIVATION_STAGE = SynchedEntityData.defineId(SynthEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> GENDER = SynchedEntityData.defineId(SynthEntity.class, EntityDataSerializers.INT);
@@ -37,6 +39,9 @@ public class SynthEntity extends PathfinderMob {
     private LookAtPlayerGoal lookAtPlayerGoal;
     private boolean lookGoalAdded = false;
 
+    // Whether the synth was told to stay (stand still)
+    private boolean staying = false;
+
     public SynthEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
     }
@@ -44,6 +49,8 @@ public class SynthEntity extends PathfinderMob {
     @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
+        this.entityData.define(SYNTH_SKIN, "default.png"); // Default skin
+        this.entityData.define(SYNTH_SKIN_ENABLED, true); // Whether the custom skin should be used (used for turning off your synth's skin and making sure it saves)
         this.entityData.define(SYNTH_NAME, "");
         this.entityData.define(ACTIVATION_STAGE, 0); // 0 = inactive, 1 = naming, 2 = gender, 3+ = done
         this.entityData.define(GENDER, 0); // -1 = unrecognised, 1 = male, 2 = female, 3 = non-binary, 4 = other
@@ -86,9 +93,9 @@ public class SynthEntity extends PathfinderMob {
             lookGoalAdded = false;
         }
 
-        // Enable stroll and random look goals when stage >= 3
-        boolean shouldEnable = stage >= 3;
-        if (shouldEnable) {
+        // Enable stroll and random look goals when at final stage and when not staying
+        boolean shouldHaveActivationGoals = isActivationComplete() && !staying;
+        if (shouldHaveActivationGoals) {
             if (!activationGoalsAdded) {
                 this.goalSelector.addGoal(1, this.strollGoal);
                 this.goalSelector.addGoal(3, this.randomLookGoal);
@@ -99,14 +106,21 @@ public class SynthEntity extends PathfinderMob {
             this.goalSelector.removeGoal(this.randomLookGoal);
             activationGoalsAdded = false;
         }
+
+        // Don't move if staying
+        if (staying) {
+            this.getNavigation().stop();
+            this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
+        }
     }
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand pHand) {
         if (pHand == InteractionHand.MAIN_HAND && player.getItemInHand(pHand).isEmpty()) {
-            if (!player.level().isClientSide && this.getActivationStage() < 3) {
+            if (!player.level().isClientSide && !isActivationComplete()) {
                 player.sendSystemMessage(Component.literal("§9[§bCrafter§3Life§9]§7 Greetings, " + player.getName().getString() + "!"));
                 player.sendSystemMessage(Component.literal("§9[§bCrafter§3Life§9]§7 Congratulations on the purchase of your new synthetic appliance! To begin attunement, please say 'Activate Synth'."));
+                return InteractionResult.SUCCESS;
             }
         }
         return InteractionResult.SUCCESS;
@@ -115,6 +129,21 @@ public class SynthEntity extends PathfinderMob {
     @Override
     public MobType getMobType() {
         return MobType.UNDEFINED;
+    }
+
+    public String getSynthSkin() {
+        return this.entityData.get(SYNTH_SKIN);
+    }
+    public void setSynthSkin(String skin) {
+        this.entityData.set(SYNTH_SKIN, skin);
+    }
+
+    public Boolean getSynthSkinEnabled() {
+        return this.entityData.get(SYNTH_SKIN_ENABLED);
+    }
+
+    public void setSynthSkinEnabled(boolean enabled) {
+        this.entityData.set(SYNTH_SKIN_ENABLED, enabled);
     }
 
     public String getSynthName() {
@@ -159,13 +188,35 @@ public class SynthEntity extends PathfinderMob {
         return player.getUUID().equals(ownerUUID);
     }
 
+    public boolean isActivationComplete() {
+        int lastActivationStage = 3;
+        return this.getActivationStage() >= lastActivationStage;
+    }
+
+    public boolean isStaying() {
+        return this.staying;
+    }
+
+    public void setStaying(boolean staying) {
+        this.staying = staying;
+        if (!this.level().isClientSide) {
+            if (staying) {
+                this.getNavigation().stop();
+                this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
+            }
+            this.updateActivationDependentGoals();
+        }
+    }
 
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.putString("SynthSkin", this.getSynthSkin());
+        tag.putBoolean("SynthSkinEnabled", this.getSynthSkinEnabled());
         tag.putString("SynthName", this.getSynthName());
         tag.putInt("ActivationStage", this.getActivationStage());
         tag.putInt("Gender", this.getGender());
+        tag.putBoolean("Staying", this.staying);
         if (this.ownerUUID != null) {
             tag.putUUID("OwnerUuid", this.ownerUUID);
         }
@@ -174,6 +225,12 @@ public class SynthEntity extends PathfinderMob {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        if (tag.contains("SynthSkin")) {
+            this.setSynthSkin(tag.getString("SynthSkin"));
+        }
+        if (tag.contains("SynthSkinEnabled")) {
+            this.setSynthSkinEnabled(tag.getBoolean("SynthSkinEnabled"));
+        }
         if (tag.contains("SynthName")) {
             this.setSynthName(tag.getString("SynthName"));
         }
@@ -187,6 +244,9 @@ public class SynthEntity extends PathfinderMob {
             this.ownerUUID = tag.getUUID("OwnerUuid");
         } else {
             this.ownerUUID = null;
+        }
+        if (tag.contains("Staying")) {
+            this.setStaying(tag.getBoolean("Staying"));
         }
     }
 }

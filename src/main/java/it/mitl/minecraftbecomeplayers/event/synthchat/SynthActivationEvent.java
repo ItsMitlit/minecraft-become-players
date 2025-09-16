@@ -1,6 +1,7 @@
-package it.mitl.minecraftbecomeplayers.event;
+package it.mitl.minecraftbecomeplayers.event.synthchat;
 
 import it.mitl.minecraftbecomeplayers.entity.custom.SynthEntity;
+import it.mitl.minecraftbecomeplayers.subroutine.SynthUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -12,10 +13,10 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 @Mod.EventBusSubscriber
-public class SynthChatEvents {
+public class SynthActivationEvent {
 
     private static final String DEFAULT_PREFIX = "§9[§bCrafter§3Life§9]§7 ";
-    private static final double ACTIVATION_RADIUS = 10.0D;
+    public static final double ACTIVATION_RADIUS = 10.0D;
 
     @SubscribeEvent
     public static void onChatMessage(ServerChatEvent event) {
@@ -36,7 +37,7 @@ public class SynthChatEvents {
             event.setCanceled(true);
 
             // Synth already fully activated
-            if (synth.getActivationStage() >= 3) {
+            if (synth.isActivationComplete()) {
                 player.sendSystemMessage(Component.literal(prefix + "This synth has already been activated."));
                 return;
             }
@@ -90,6 +91,8 @@ public class SynthChatEvents {
                         player.sendSystemMessage(Component.literal(getSynthPrefix(synth) + "I didn't catch that. Please reply with Male, Female, Non-binary, or Other."));
                         return;
                     }
+
+                    synth.setSynthSkin(pickRandomSkin(gender));
                     synth.setGender(gender);
                     synth.setActivationStage(3); // activation completed
                     player.sendSystemMessage(Component.literal(getSynthPrefix(synth) + "Activation complete. Ready for service."));
@@ -116,7 +119,7 @@ public class SynthChatEvents {
     private static SynthEntity getNearestSynth(Player player) {
         List<SynthEntity> list = player.level().getEntitiesOfClass(
                 SynthEntity.class,
-                player.getBoundingBox().inflate(SynthChatEvents.ACTIVATION_RADIUS),
+                player.getBoundingBox().inflate(SynthActivationEvent.ACTIVATION_RADIUS),
                 Entity::isAlive
         );
         if (list.isEmpty()) return null;
@@ -151,4 +154,56 @@ public class SynthChatEvents {
         }
         return "§9[§b" + name + "§9]§7 ";
     }
+
+    private static String pickRandomSkin(int gender) {
+        int totalSkins = 0;
+        String path = "";
+        if (gender == 1) {
+            totalSkins = SynthUtils.getTotalSkins(gender);
+            path = "male/";
+        } else if (gender == 2) {
+            totalSkins = SynthUtils.getTotalSkins(gender);
+            path = "female/";
+        } else if (gender == 3 || gender == 4) {
+            int newGender = (Math.random() < 0.5) ? 1 : 2;
+            totalSkins = SynthUtils.getTotalSkins(newGender);
+            if (newGender == 1) {
+                path = "male/";
+            } else {
+                path = "female/";
+            }
+        }
+
+        int skinNumber = 1 + (int)(Math.random() * totalSkins);
+        return path + skinNumber + ".png";
+    }
+
+    public static void sendChat(Player player, Component message) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                player.sendSystemMessage(message);
+            } catch (InterruptedException ignored) { // set this up later
+            }
+        });
+    }
+
+//    public static void sendChatMessages(CommandSourceStack source, String message) {
+//        List<String> messages = splitMessage(message);
+//
+//
+//        new Thread(() -> {
+//            for (String msg : messages) {
+//                try {
+//                    String formatter = chooseFormatterRandom();
+//                    source.getServer().getCommands().performPrefixedCommand(source, "/say " + formatter + msg);
+//                    Thread.sleep(2500); // Introduce a slight delay between messages
+//                } catch (InterruptedException e) {
+//                    LOGGER.error("{}", e.getMessage());
+//                }
+//            }
+//
+//        }).start();
+//
+//    }
 }
