@@ -32,6 +32,8 @@ public class SynthInstructionEvent {
         boolean hasFollow = containsWord(lowerMsg, "follow");
         if (!hasStay && !hasRoam && !hasFollow) return;
 
+        // Group Targeting
+        boolean targetAllOwnedSynths = containsWord(lowerMsg, "synths");
         // Get nearby synths
         List<SynthEntity> list = player.level().getEntitiesOfClass(
                 SynthEntity.class,
@@ -60,11 +62,22 @@ public class SynthInstructionEvent {
             }
         }
 
-        if (chosenByName.isEmpty()) return;
+        Collection<SynthEntity> targets;
+        if (!chosenByName.isEmpty()) {
+            targets = chosenByName.values();
+        } else if (targetAllOwnedSynths) {
+            List<SynthEntity> owned = new ArrayList<>();
+            for (SynthEntity s : list) {
+                if (s.isOwner(player)) owned.add(s);
+            }
+            if (owned.isEmpty()) return;
+            targets = owned;
+        } else {
+            return;
+        }
 
-        // Apply the stay/roam command to the selected synth
-        for (SynthEntity target : chosenByName.values()) {
-            // Skip if the synth isn't enabled
+        // Apply the command to the selected synth(s)
+        for (SynthEntity target : targets) {
             if (!target.isActivationComplete()) continue;
 
             String reply;
@@ -82,7 +95,8 @@ public class SynthInstructionEvent {
                 reply = "All right, I'll stay here.";
             }
 
-            String prefix = "§9[§b" + target.getSynthName() + "§9]§7 ";
+            String displayName = target.getSynthName().isEmpty() ? "Synth" : target.getSynthName();
+            String prefix = "§9[§b" + displayName + "§9]§7 ";
             if (player.getServer() != null) {
                 SynthUtils.sendChatMessages(player, prefix + reply);
             } else {
