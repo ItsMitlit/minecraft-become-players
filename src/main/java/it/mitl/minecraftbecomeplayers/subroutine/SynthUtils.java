@@ -1,7 +1,7 @@
 package it.mitl.minecraftbecomeplayers.subroutine;
 
 import it.mitl.minecraftbecomeplayers.entity.custom.SynthEntity;
-import it.mitl.minecraftbecomeplayers.event.synthchat.SynthActivationEvent;
+import it.mitl.minecraftbecomeplayers.event.synthevent.chat.SynthActivationEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;

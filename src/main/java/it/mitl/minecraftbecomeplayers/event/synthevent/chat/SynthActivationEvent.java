@@ -1,4 +1,4 @@
-package it.mitl.minecraftbecomeplayers.event.synthchat;
+package it.mitl.minecraftbecomeplayers.event.synthevent.chat;
 
 import it.mitl.minecraftbecomeplayers.entity.custom.SynthEntity;
 import it.mitl.minecraftbecomeplayers.subroutine.SynthUtils;

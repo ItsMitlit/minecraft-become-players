@@ -68,6 +68,7 @@ public class SynthEntity extends PathfinderMob {
     // Whether the synth should follow the owner
     private boolean following = false;
     private FollowOwnerGoal followOwnerGoal;
+    private MeleeAttackGoal meleeAttackGoal;
 
     // Synth inventory (27 slots, pretty much a chest)
     private final ItemStackHandler inventory = new ItemStackHandler(27) {
@@ -108,6 +109,7 @@ public class SynthEntity extends PathfinderMob {
         this.randomLookGoal = new RandomLookAroundGoal(this);
         this.lookAtPlayerGoal = new LookAtPlayerGoal(this, Player.class, 8.0F);
         this.followOwnerGoal = new FollowOwnerGoal(this, 1.15D, 4.0F, 2.0F);
+        this.meleeAttackGoal = new MeleeAttackGoal(this, 1.2D, true);
 
         this.updateActivationDependentGoals();
     }
@@ -121,7 +123,7 @@ public class SynthEntity extends PathfinderMob {
         boolean shouldLook = stage >= 1;
         if (shouldLook) {
             if (!lookGoalAdded) {
-                this.goalSelector.addGoal(2, this.lookAtPlayerGoal);
+                this.goalSelector.addGoal(5, this.lookAtPlayerGoal);
                 lookGoalAdded = true;
             }
         } else if (lookGoalAdded) {
@@ -132,8 +134,8 @@ public class SynthEntity extends PathfinderMob {
         boolean shouldHaveActivationGoals = isActivationComplete() && !staying && !following;
         if (shouldHaveActivationGoals) {
             if (!activationGoalsAdded) {
-                this.goalSelector.addGoal(1, this.strollGoal);
-                this.goalSelector.addGoal(3, this.randomLookGoal);
+                this.goalSelector.addGoal(3, this.strollGoal);
+                this.goalSelector.addGoal(4, this.randomLookGoal);
                 activationGoalsAdded = true;
             }
         } else if (activationGoalsAdded) {
@@ -147,10 +149,20 @@ public class SynthEntity extends PathfinderMob {
         if (shouldFollow) {
             // Ensure follow goal is present
             if (!this.goalSelector.getAvailableGoals().stream().anyMatch(w -> w.getGoal() == this.followOwnerGoal)) {
-                this.goalSelector.addGoal(1, this.followOwnerGoal);
+                // Lower priority than melee so attacking overrides following
+                this.goalSelector.addGoal(2, this.followOwnerGoal);
             }
         } else {
             this.goalSelector.removeGoal(this.followOwnerGoal);
+        }
+
+        boolean shouldHaveMelee = isActivationComplete() && !staying;
+        if (shouldHaveMelee) {
+            if (!this.goalSelector.getAvailableGoals().stream().anyMatch(w -> w.getGoal() == this.meleeAttackGoal)) {
+                this.goalSelector.addGoal(1, this.meleeAttackGoal);
+            }
+        } else {
+            this.goalSelector.removeGoal(this.meleeAttackGoal);
         }
 
         // Don't move if staying
