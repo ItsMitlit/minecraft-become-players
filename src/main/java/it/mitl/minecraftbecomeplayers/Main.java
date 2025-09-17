@@ -3,6 +3,9 @@ package it.mitl.minecraftbecomeplayers;
 import com.mojang.logging.LogUtils;
 import it.mitl.minecraftbecomeplayers.entity.ModEntities;
 import it.mitl.minecraftbecomeplayers.entity.client.SynthRenderer;
+import it.mitl.minecraftbecomeplayers.client.screen.SynthInventoryScreen;
+import it.mitl.minecraftbecomeplayers.menu.ModMenus;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -51,6 +54,7 @@ public class Main {
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
+            event.enqueueWork(() -> MenuScreens.register(ModMenus.SYNTH_INVENTORY.get(), SynthInventoryScreen::new));
         }
 
         @SubscribeEvent

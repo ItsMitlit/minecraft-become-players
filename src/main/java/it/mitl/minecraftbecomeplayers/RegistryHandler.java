@@ -1,9 +1,8 @@
 package it.mitl.minecraftbecomeplayers;
 
 import it.mitl.minecraftbecomeplayers.entity.ModEntities;
-import net.minecraftforge.api.distmarker.Dist;
+import it.mitl.minecraftbecomeplayers.menu.ModMenus;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 public class RegistryHandler {
@@ -13,6 +12,7 @@ public class RegistryHandler {
         //DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> ClientEvents::register);
 
         ModEntities.register(modEventBus);
+        ModMenus.register(modEventBus);
     }
 
 }
