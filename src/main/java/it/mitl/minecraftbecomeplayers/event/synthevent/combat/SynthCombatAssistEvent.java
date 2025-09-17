@@ -60,6 +60,9 @@ public class SynthCombatAssistEvent {
                 LivingEntity::isAlive
         );
         for (SynthEntity synth : list) {
+            if (target instanceof SynthEntity) {
+                if (synth.isOwner(owner)) return;
+            }
             if (!synth.isActivationComplete()) continue;
             if (!synth.isOwner(owner)) continue;
             if (synth.isStaying()) continue;
