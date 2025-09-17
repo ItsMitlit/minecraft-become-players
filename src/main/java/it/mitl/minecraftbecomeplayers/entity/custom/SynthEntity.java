@@ -94,7 +94,7 @@ public class SynthEntity extends PathfinderMob {
 
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 20.0D)
+                .add(Attributes.MAX_HEALTH, 40.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.23D)
                 .add(Attributes.ATTACK_DAMAGE, 3.0D);
     }
