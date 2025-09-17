@@ -1,6 +1,8 @@
 package it.mitl.minecraftbecomeplayers;
 
 import it.mitl.minecraftbecomeplayers.entity.ModEntities;
+import it.mitl.minecraftbecomeplayers.item.ModCreativeModeTabs;
+import it.mitl.minecraftbecomeplayers.item.ModItems;
 import it.mitl.minecraftbecomeplayers.menu.ModMenus;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -13,6 +15,8 @@ public class RegistryHandler {
 
         ModEntities.register(modEventBus);
         ModMenus.register(modEventBus);
+        ModItems.register(modEventBus);
+        ModCreativeModeTabs.register(modEventBus);
     }
 
 }

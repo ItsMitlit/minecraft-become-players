@@ -1,3 +1,7 @@
 {
-  "entity.minecraftbecomeplayers.synth": "Synth"
+  "entity.minecraftbecomeplayers.synth": "Synth",
+
+  "item.minecraftbecomeplayers.blue_blood": "Blue Blood",
+
+  "creativetab.minecraftbecomeplayers_tab": "Minecraft: Become Players"
 }

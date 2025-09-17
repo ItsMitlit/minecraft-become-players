@@ -1,6 +1,7 @@
 package it.mitl.minecraftbecomeplayers.entity.custom;
 
 import it.mitl.minecraftbecomeplayers.entity.ai.goal.FollowOwnerGoal;
+import it.mitl.minecraftbecomeplayers.item.ModItems;
 import it.mitl.minecraftbecomeplayers.menu.SynthInventoryMenu;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -175,8 +176,24 @@ public class SynthEntity extends PathfinderMob {
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand pHand) {
         if (pHand == InteractionHand.MAIN_HAND) {
+
+            if (level().isClientSide) return super.mobInteract(player, pHand);
+
+            // Right-Clicking with blue blood heals the synth
+            if (player.getItemInHand(pHand).getItem() == ModItems.BLUE_BLOOD.get()) {
+                player.getItemInHand(pHand).shrink(1);
+                this.heal(4.0F);
+                this.level().playSound(null, this.blockPosition(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.5F, 1.0F);
+                if (this.isActivationComplete()) {
+                    player.sendSystemMessage(Component.literal("§9[§b" + (this.getSynthName().isEmpty() ? "Synth" : this.getSynthName()) + "§9]§7 Thank you, I feel better now."));
+                } else {
+                    player.sendSystemMessage(Component.literal("§9[§bCrafter§3Life§9]§7 Thank you, I feel better now."));
+                }
+                return InteractionResult.CONSUME;
+            }
+
             // Crouch + right-click opens inventory
-            if (!level().isClientSide && player.isShiftKeyDown() && isOwner(player)) {
+            if (player.isShiftKeyDown() && isOwner(player)) {
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 SimpleMenuProvider provider = new SimpleMenuProvider(
                         (id, inv, pl) -> new SynthInventoryMenu(id, inv, this),
@@ -189,7 +206,7 @@ public class SynthEntity extends PathfinderMob {
 
             // Activation messages when main hand is empty and synth not activated
             if (player.getItemInHand(pHand).isEmpty()) {
-                if (!player.level().isClientSide && !isActivationComplete()) {
+                if (!isActivationComplete()) {
                     player.sendSystemMessage(Component.literal("§9[§bCrafter§3Life§9]§7 Greetings, " + player.getName().getString() + "!"));
                     player.sendSystemMessage(Component.literal("§9[§bCrafter§3Life§9]§7 Congratulations on the purchase of your new synthetic appliance! To begin attunement, please say 'Activate Synth'."));
                     return InteractionResult.SUCCESS;
