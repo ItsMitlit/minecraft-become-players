@@ -1,4 +1,4 @@
-package it.mitl.minecraftbecomeplayers.data;
+package it.mitl.minecraftbecomeplayers.datagen;
 
 import it.mitl.minecraftbecomeplayers.Main;
 import net.minecraft.core.HolderLookup;
