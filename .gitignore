@@ -120,3 +120,5 @@ runs/
 
 
 .vscode/
+/src/generated/resources/.cache/
+run-data/

@@ -18,6 +18,7 @@ public class ModCreativeModeTabs {
                     .title(Component.translatable("creativetab.minecraftbecomeplayers_tab"))
                     .displayItems((displayParameters, output) -> {
                         output.accept(ModItems.BLUE_BLOOD.get());
+                        output.accept(ModItems.SYNTH_SPAWN_EGG.get());
                     }).build());
     public static void register(IEventBus eventBus) {
         CREATIVE_MODE_TABS.register(eventBus);

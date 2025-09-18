@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "item": "minecraftbecomeplayers:blue_blood"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "S": {
+      "tag": "forge:heads"
+    }
+  },
+  "pattern": [
+    "ISI",
+    "DND",
+    "IBI"
+  ],
+  "result": {
+    "item": "minecraftbecomeplayers:synth_spawn_egg"
+  },
+  "show_notification": true
+}
