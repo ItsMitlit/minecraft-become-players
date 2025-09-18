@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "item": "minecraft:glass_pane"
+    },
+    "L": {
+      "item": "minecraft:lapis_lazuli"
+    }
+  },
+  "pattern": [
+    "GLG",
+    "GLG",
+    "GLG"
+  ],
+  "result": {
+    "count": 2,
+    "item": "minecraftbecomeplayers:blue_blood"
+  },
+  "show_notification": true
+}
