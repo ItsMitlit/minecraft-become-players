@@ -16,17 +16,17 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobType;
-import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.capabilities.Capability;
@@ -75,9 +75,14 @@ public class SynthEntity extends PathfinderMob {
     private final ItemStackHandler inventory = new ItemStackHandler(27) {
         @Override
         protected void onContentsChanged(int slot) {
+            if (!SynthEntity.this.level().isClientSide && SynthEntity.this.isAlive() && SynthEntity.this.getTarget() != null) {
+                SynthEntity.this.equipFirstAvailableWeapon();
+            }
         }
     };
     private final LazyOptional<IItemHandler> inventoryOptional = LazyOptional.of(() -> inventory);
+
+    private int equippedInventorySlot = -1; // -1 means none
 
     public SynthEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -317,6 +322,19 @@ public class SynthEntity extends PathfinderMob {
         }
     }
 
+    // for equipping and putting away weapons depending on whether synth has a target
+    @Override
+    public void setTarget(@Nullable LivingEntity entity) {
+        super.setTarget(entity);
+        if (this.level().isClientSide) return;
+
+        if (entity != null) {
+            equipFirstAvailableWeapon();
+        } else {
+            stowEquippedItem();
+        }
+    }
+
     @Override
     @Nonnull
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> capability, Direction direction) {
@@ -346,6 +364,7 @@ public class SynthEntity extends PathfinderMob {
         tag.putInt("Gender", this.getGender());
         tag.putBoolean("Staying", this.staying);
         tag.putBoolean("Following", this.following);
+        tag.putInt("EquippedInventorySlot", this.equippedInventorySlot);
         if (this.ownerUUID != null) {
             tag.putUUID("OwnerUuid", this.ownerUUID);
         }
@@ -384,10 +403,15 @@ public class SynthEntity extends PathfinderMob {
         if (tag.contains("Inventory")) {
             inventory.deserializeNBT(tag.getCompound("Inventory"));
         }
+        if (tag.contains("EquippedInventorySlot")) {
+            this.equippedInventorySlot = tag.getInt("EquippedInventorySlot");
+        }
+        this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
     }
 
     @Override
     protected void dropCustomDeathLoot(DamageSource source, int lootingMultiplier, boolean recentlyHit) {
+        this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY); // remove equipped item to avoid duplication
         super.dropCustomDeathLoot(source, lootingMultiplier, recentlyHit);
         if (this.level().isClientSide) return;
         // Drop all items
@@ -406,6 +430,16 @@ public class SynthEntity extends PathfinderMob {
         super.aiStep();
         if (!this.level().isClientSide && this.isAlive()) {
             pickupNearbyItems();
+            var currentTarget = this.getTarget();
+            if (currentTarget == null || !currentTarget.isAlive() || currentTarget.isRemoved() || currentTarget.isDeadOrDying()) {
+                if (currentTarget != null) {
+                    this.setTarget(null);
+                } else if (!this.getMainHandItem().isEmpty()) {
+                    this.stowEquippedItem();
+                }
+            } else {
+                ensureEquippedItemValid();
+            }
         }
     }
 
@@ -439,5 +473,46 @@ public class SynthEntity extends PathfinderMob {
             if (inventory.getStackInSlot(i).isEmpty()) return false;
         }
         return true;
+    }
+
+    private void equipFirstAvailableWeapon() {
+        // Find the first usable weapon in the lowest numbered slot
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            ItemStack candidate = inventory.getStackInSlot(i);
+            if (candidate.isEmpty()) continue;
+            if (isUsableWeapon(candidate)) {
+                this.setItemSlot(EquipmentSlot.MAINHAND, candidate);
+                this.equippedInventorySlot = i;
+                return;
+            }
+        }
+        this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        this.equippedInventorySlot = -1;
+    }
+
+    private void stowEquippedItem() {
+    this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        this.equippedInventorySlot = -1;
+    }
+
+    private void ensureEquippedItemValid() {
+        if (this.equippedInventorySlot >= 0 && this.equippedInventorySlot < inventory.getSlots()) {
+            ItemStack stack = inventory.getStackInSlot(this.equippedInventorySlot);
+            if (!stack.isEmpty() && isUsableWeapon(stack)) {
+                // keep it equipped
+                if (!ItemStack.isSameItemSameTags(stack, this.getMainHandItem())) {
+                    this.setItemSlot(EquipmentSlot.MAINHAND, stack);
+                }
+                return;
+            }
+        }
+        equipFirstAvailableWeapon();
+    }
+
+    private boolean isUsableWeapon(ItemStack stack) {
+    return stack.getItem() instanceof SwordItem
+        || stack.getItem() instanceof AxeItem
+        || stack.getItem() instanceof TridentItem
+        || stack.getItem() instanceof TieredItem;
     }
 }
