@@ -43,5 +43,18 @@ public class ModRecipeProvider extends RecipeProvider implements IConditionBuild
                 .unlockedBy("has_blue_blood", inventoryTrigger(ItemPredicate.Builder.item()
                         .of(ModItems.BLUE_BLOOD.get()).build()))
                 .save(pWriter);
+
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModItems.TRACKER.get())
+                .pattern("ILI")
+                .pattern("IGI")
+                .pattern("IRI")
+                .define('I', Items.IRON_INGOT)
+                .define('L', Items.LIGHTNING_ROD)
+                .define('G', Tags.Items.GLASS_PANES)
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_lightning_rod", inventoryTrigger(ItemPredicate.Builder.item()
+                        .of(Items.LIGHTNING_ROD).build()))
+                .save(pWriter);
+
     }
 }
