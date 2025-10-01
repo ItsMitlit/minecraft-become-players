@@ -199,6 +199,7 @@ public class SynthEntity extends PathfinderMob {
 
             // Crouch + right-click opens inventory
             if (player.isShiftKeyDown() && isOwner(player)) {
+                if (player.getMainHandItem().is(ModItems.TRACKER.get()) || player.getOffhandItem().is(ModItems.TRACKER.get())) return InteractionResult.PASS;
                 ServerPlayer serverPlayer = (ServerPlayer) player;
                 SimpleMenuProvider provider = new SimpleMenuProvider(
                         (id, inv, pl) -> new SynthInventoryMenu(id, inv, this),

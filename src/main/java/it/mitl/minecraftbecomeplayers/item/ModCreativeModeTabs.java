@@ -19,6 +19,7 @@ public class ModCreativeModeTabs {
                     .displayItems((displayParameters, output) -> {
                         output.accept(ModItems.BLUE_BLOOD.get());
                         output.accept(ModItems.SYNTH_SPAWN_EGG.get());
+                        output.accept(ModItems.TRACKER.get());
                     }).build());
     public static void register(IEventBus eventBus) {
         CREATIVE_MODE_TABS.register(eventBus);

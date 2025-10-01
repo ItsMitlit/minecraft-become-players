@@ -2,6 +2,7 @@ package it.mitl.minecraftbecomeplayers.item;
 
 import it.mitl.minecraftbecomeplayers.Main;
 import it.mitl.minecraftbecomeplayers.entity.ModEntities;
+import it.mitl.minecraftbecomeplayers.item.custom.TrackerItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -20,6 +21,10 @@ public class ModItems {
     public static final RegistryObject<Item> SYNTH_SPAWN_EGG = ITEMS.register("synth_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.SYNTH, 0x6497d0, 0x95e2ff,
                     new Item.Properties()));
+
+    public static final RegistryObject<Item> TRACKER = ITEMS.register("tracker", () ->
+            new TrackerItem()
+    );
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
