@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -28,6 +29,8 @@ import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.TieredItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
@@ -41,6 +44,8 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class SynthEntity extends PathfinderMob {
@@ -83,6 +88,10 @@ public class SynthEntity extends PathfinderMob {
     private final LazyOptional<IItemHandler> inventoryOptional = LazyOptional.of(() -> inventory);
 
     private int equippedInventorySlot = -1; // -1 means none
+
+    // Chunk loading tracking (3x3 area)
+    private Set<ChunkPos> forcedChunks = new HashSet<>();
+    private ResourceKey<Level> forcedDimension = null;
 
     public SynthEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -277,6 +286,11 @@ public class SynthEntity extends PathfinderMob {
     public void setActivationStage(int stage) {
         this.entityData.set(ACTIVATION_STAGE, stage);
         this.updateActivationDependentGoals();
+        if (!this.level().isClientSide && this.level() instanceof ServerLevel serverLevel) {
+            if (!this.isActivationComplete()) {
+                unforceAll(serverLevel);
+            }
+        }
     }
 
     public int getGender() {
@@ -438,8 +452,19 @@ public class SynthEntity extends PathfinderMob {
     }
 
     @Override
+    public void remove(RemovalReason reason) {
+        if (this.level() instanceof ServerLevel serverLevel) {
+            unforceAll(serverLevel);
+        }
+        super.remove(reason);
+    }
+
+    @Override
     public void aiStep() {
         super.aiStep();
+        if (!this.level().isClientSide) {
+            updateForcedChunks();
+        }
         if (!this.level().isClientSide && this.isAlive()) {
             pickupNearbyItems();
             var currentTarget = this.getTarget();
@@ -453,6 +478,50 @@ public class SynthEntity extends PathfinderMob {
                 ensureEquippedItemValid();
             }
         }
+    }
+
+    private void updateForcedChunks() {
+        if (!(this.level() instanceof ServerLevel serverLevel)) return;
+
+        boolean shouldForce = this.isActivationComplete() && !this.isRemoved();
+        ChunkPos center = new ChunkPos(this.blockPosition());
+        ResourceKey<Level> currentDim = serverLevel.dimension();
+
+        if (!shouldForce) {
+            unforceAll(serverLevel);
+            return;
+        }
+
+        Set<ChunkPos> desired = computeArea(center, 1); // 3x3 area
+        boolean dimChanged = forcedDimension == null || !forcedDimension.equals(currentDim);
+        boolean sameArea = !dimChanged && forcedChunks.equals(desired);
+        if (sameArea) return;
+
+        unforceAll(serverLevel);
+        for (ChunkPos cp : desired) {
+            serverLevel.setChunkForced(cp.x, cp.z, true);
+        }
+        forcedChunks = desired;
+        forcedDimension = currentDim;
+    }
+
+    private static Set<ChunkPos> computeArea(ChunkPos center, int radius) {
+        Set<ChunkPos> set = new HashSet<>();
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                set.add(new ChunkPos(center.x + dx, center.z + dz));
+            }
+        }
+        return set;
+    }
+
+    private void unforceAll(ServerLevel level) {
+        if (forcedChunks.isEmpty()) return;
+        for (ChunkPos cp : forcedChunks) {
+            level.setChunkForced(cp.x, cp.z, false);
+        }
+        forcedChunks.clear();
+        forcedDimension = null;
     }
 
     private void pickupNearbyItems() {
