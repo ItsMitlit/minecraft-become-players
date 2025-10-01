@@ -86,6 +86,7 @@ public class SynthEntity extends PathfinderMob {
 
     public SynthEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
+        this.setPersistenceRequired();
     }
 
     @Override
@@ -225,6 +226,16 @@ public class SynthEntity extends PathfinderMob {
     @Override
     public MobType getMobType() {
         return MobType.UNDEFINED;
+    }
+
+    @Override
+    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
+        return false;
+    }
+
+    @Override
+    public boolean requiresCustomPersistence() {
+        return true;
     }
 
     @Override
